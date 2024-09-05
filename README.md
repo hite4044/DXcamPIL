@@ -5,6 +5,8 @@ import dxcam
 camera = dxcam.create()
 camera.grab()
 ```
+## WARING
+This fork causes camera.grab to return the PIL.Image.
 
 ## Introduction
 DXcam is a Python high-performance screenshot library for Windows using Desktop Duplication API. Capable of 240Hz+ capturing. It was originally built as a part of deep learning pipeline for FPS games to perform better than existed python solutions ([python-mss](https://github.com/BoboTiG/python-mss), [D3DShot](https://github.com/SerpentAI/D3DShot/)). 
