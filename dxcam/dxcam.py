@@ -1,6 +1,6 @@
 import time
 import ctypes
-from typing import Tuple
+from typing import Tuple, Literal
 from threading import Thread, Event, Lock
 import comtypes
 import numpy as np
@@ -22,7 +22,7 @@ class DXCamera:
         output: Output,
         device: Device,
         region: Tuple[int, int, int, int],
-        output_color: str = "RGB",
+        output_color: str = Literal["RGB", "RGBA"],
         max_buffer_len=64,
     ) -> None:
         self._output: Output = output
