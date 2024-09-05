@@ -1,5 +1,5 @@
 import time
-import dxcam
+import dxcampil
 
 
 TOP = 0
@@ -10,7 +10,7 @@ region = (LEFT, TOP, RIGHT, BOTTOM)
 title = "[DXcam] Capture benchmark"
 
 fps = 0
-camera = dxcam.create(output_idx=0)
+camera = dxcampil.create(output_idx=0)
 camera.start(target_fps=60)
 for i in range(1000):
     image = camera.get_latest_frame()

@@ -1,5 +1,5 @@
 import time
-import dxcam
+import dxcampil
 
 
 TOP = 0
@@ -12,7 +12,7 @@ start_time = time.perf_counter()
 
 
 fps = 0
-cam = dxcam.create()
+cam = dxcampil.create()
 start = time.perf_counter()
 while fps < 1000:
     frame = cam.grab(region=region)

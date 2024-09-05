@@ -1,12 +1,12 @@
 import time
 import ctypes
-from typing import Tuple, Literal
+from typing import Tuple, Literal, List
 from threading import Thread, Event, Lock
 import comtypes
-import numpy as np
-from dxcam.core import Device, Output, StageSurface, Duplicator
-from dxcam.processor import Processor
-from dxcam.util.timer import (
+from PIL import Image
+from dxcampil.core import Device, Output, StageSurface, Duplicator
+from dxcampil.processor import Processor
+from dxcampil.util.timer import (
     create_high_resolution_timer,
     set_periodic_timer,
     wait_for_timer,
@@ -18,15 +18,16 @@ from dxcam.util.timer import (
 
 class DXCamera:
     def __init__(
-        self,
-        output: Output,
-        device: Device,
-        region: Tuple[int, int, int, int],
-        output_color: str = Literal["RGB", "RGBA"],
-        max_buffer_len=64,
+            self,
+            output: Output,
+            device: Device,
+            region: Tuple[int, int, int, int],
+            output_color: str = Literal["RGB", "RGBA"],
+            max_buffer_len=64,
     ) -> None:
         self._output: Output = output
         self._device: Device = device
+        # noinspection SpellCheckingInspection
         self._stagesurf: StageSurface = StageSurface(
             output=self._output, device=self._device
         )
@@ -53,7 +54,7 @@ class DXCamera:
         self.__stop_capture = Event()
 
         self.__frame_available = Event()
-        self.__frame_buffer: np.ndarray = None
+        self.__frame_buffer: List[Image.Image] = None
         self.__head = 0
         self.__tail = 0
         self.__full = False
@@ -104,16 +105,16 @@ class DXCamera:
             try:
                 self._stagesurf.rebuild(output=self._output, device=self._device)
                 self._duplicator = Duplicator(output=self._output, device=self._device)
-            except comtypes.COMError as ce:
+            except comtypes.COMError:
                 continue
             break
 
     def start(
-        self,
-        region: Tuple[int, int, int, int] = None,
-        target_fps: int = 60,
-        video_mode=False,
-        delay: int = 0,
+            self,
+            region: Tuple[int, int, int, int] = None,
+            target_fps: int = 60,
+            video_mode=False,
+            delay: int = 0,
     ):
         if delay != 0:
             time.sleep(delay)
@@ -122,10 +123,11 @@ class DXCamera:
             region = self.region
         self._validate_region(region)
         self.is_capturing = True
-        frame_shape = (region[3] - region[1], region[2] - region[0], self.channel_size)
-        self.__frame_buffer = np.ndarray(
-            (self.max_buffer_len, *frame_shape), dtype=np.uint8
-        )
+        # frame_shape = (region[3] - region[1], region[2] - region[0], self.channel_size)
+        self.__frame_buffer = []
+        # self.__frame_buffer = np.ndarray(
+        #     (self.max_buffer_len, *frame_shape), dtype=np.uint8
+        # )
         self.__thread = Thread(
             target=self.__capture,
             name="DXCamera",
@@ -151,13 +153,13 @@ class DXCamera:
         with self.__lock:
             ret = self.__frame_buffer[(self.__head - 1) % self.max_buffer_len]
             self.__frame_available.clear()
-        return np.array(ret)
+        return ret.copy()
 
     def __capture(
-        self, region: Tuple[int, int, int, int], target_fps: int = 60, video_mode=False
+            self, region: Tuple[int, int, int, int], target_fps: int = 60, video_mode=False
     ):
         if target_fps != 0:
-            period_ms = 1000 // target_fps  # millisenonds for periodic timer
+            period_ms = 1000 // target_fps  # milliseconds for periodic timer
             self.__timer_handle = create_high_resolution_timer()
             set_periodic_timer(self.__timer_handle, period_ms)
 
@@ -185,9 +187,8 @@ class DXCamera:
                         self.__full = self.__head == self.__tail
                 elif video_mode:
                     with self.__lock:
-                        self.__frame_buffer[self.__head] = np.array(
-                            self.__frame_buffer[(self.__head - 1) % self.max_buffer_len]
-                        )
+                        self.__frame_buffer[self.__head] = \
+                            self.__frame_buffer[(self.__head - 1) % self.max_buffer_len].copy()
                         if self.__full:
                             self.__tail = (self.__tail + 1) % self.max_buffer_len
                         self.__head = (self.__head + 1) % self.max_buffer_len
@@ -208,21 +209,15 @@ class DXCamera:
             self.stop()
             raise capture_error
         print(
-            f"Screen Capture FPS: {int(self.__frame_count/(time.perf_counter() - self.__capture_start_time))}"
+            f"Screen Capture FPS: {int(self.__frame_count / (time.perf_counter() - self.__capture_start_time))}"
         )
 
-    def _rebuild_frame_buffer(self, region: Tuple[int, int, int, int]):
-        if region is None:
-            region = self.region
-        frame_shape = (
-            region[3] - region[1],
-            region[2] - region[0],
-            self.channel_size,
-        )
+    def _rebuild_frame_buffer(self, _: Tuple[int, int, int, int]):
+        # if region is None:
+        #     region = self.region
+        # frame_shape = (region[3] - region[1], region[2] - region[0], self.channel_size)
         with self.__lock:
-            self.__frame_buffer = np.ndarray(
-                (self.max_buffer_len, *frame_shape), dtype=np.uint8
-            )
+            self.__frame_buffer = []
             self.__head = 0
             self.__tail = 0
             self.__full = False

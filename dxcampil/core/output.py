@@ -1,8 +1,8 @@
 import ctypes
 from typing import Tuple
 from dataclasses import dataclass
-from dxcam._libs.d3d11 import *
-from dxcam._libs.dxgi import *
+from dxcampil._libs.d3d11 import *
+from dxcampil._libs.dxgi import *
 
 
 @dataclass

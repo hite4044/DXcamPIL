@@ -1,12 +1,16 @@
-# **DXcam**
+# **DXcamPIL**
 > ***Fastest Python Screenshot for Windows***
 ```python
-import dxcam
-camera = dxcam.create()
+import dxcampil
+camera = dxcampil.create()
 camera.grab()
 ```
-## WARING
-This fork causes camera.grab to return the PIL.Image.
+## WARNING
+This fork causes `camera.grab` to return the `PIL.Image.Image`.
+Performance was lower: 90 FPS+
+I made it so that it only needs the `PIL` and `comtypes` to run!
+
+No more large dependency libraries!
 
 ## Introduction
 DXcam is a Python high-performance screenshot library for Windows using Desktop Duplication API. Capable of 240Hz+ capturing. It was originally built as a part of deep learning pipeline for FPS games to perform better than existed python solutions ([python-mss](https://github.com/BoboTiG/python-mss), [D3DShot](https://github.com/SerpentAI/D3DShot/)). 
@@ -23,7 +27,7 @@ Compared to these existed solutions, DXcam provides:
 ## Installation
 ### From PyPI:
 ```bash
-pip install dxcam
+pip install dxcampil
 ```
 
 **Note:** OpenCV is required by DXcam for colorspace conversion. If you don't already have OpenCV, install it easily with command `pip install dxcam[cv2]`.
@@ -40,8 +44,8 @@ pip install --editable .[cv2]
 In DXCam, each output (monitor) is asscociated to a ```DXCamera``` instance.
 To create a DXCamera instance:
 ```python
-import dxcam
-camera = dxcam.create()  # returns a DXCamera instance on primary monitor
+import dxcampil
+camera = dxcampil.create()  # returns a DXCamera instance on primary monitor
 ```
 ### Screenshot
 For screenshot, simply use ```.grab```:
@@ -85,33 +89,33 @@ Notice that ```.get_latest_frame``` by default will block until there is a new f
 ## Advanced Usage and Remarks
 ### Multiple monitors / GPUs
 ```python
-cam1 = dxcam.create(device_idx=0, output_idx=0)
-cam2 = dxcam.create(device_idx=0, output_idx=1)
-cam3 = dxcam.create(device_idx=1, output_idx=1)
+cam1 = dxcampil.create(device_idx=0, output_idx=0)
+cam2 = dxcampil.create(device_idx=0, output_idx=1)
+cam3 = dxcampil.create(device_idx=1, output_idx=1)
 img1 = cam1.grab()
 img2 = cam2.grab()
 img2 = cam3.grab()
 ```
 The above code creates three ```DXCamera``` instances for: ```[monitor0, GPU0], [monitor1, GPU0], [monitor1, GPU1]```, and subsequently takes three full-screen screenshots. (cross GPU untested, but I hope it works.) To get a complete list of devices and outputs:
 ```pycon
->>> import dxcam
->>> dxcam.device_info()
+>>> import dxcampil
+>>> dxcampil.device_info()
 'Device[0]:<Device Name:NVIDIA GeForce RTX 3090 Dedicated VRAM:24348Mb VendorId:4318>\n'
->>> dxcam.output_info()
+>>> dxcampil.output_info()
 'Device[0] Output[0]: Res:(1920, 1080) Rot:0 Primary:True\nDevice[0] Output[1]: Res:(1920, 1080) Rot:0 Primary:False\n'
 ```
 
 ### Output Format
 You can specify the output color mode upon creation of the DXCamera instance:
 ```python
-dxcam.create(output_idx=0, output_color="BGRA")
+dxcampil.create(output_idx=0, output_color="BGRA")
 ```
 We currently support "RGB", "RGBA", "BGR", "BGRA", "GRAY", with "GRAY being the gray scale. As for the data format, ```DXCamera``` only supports ```numpy.ndarray```  in shape of ```(Height, Width, Channels)``` right now. ***We will soon add support for other output formats.***
 
 ### Video Buffer
 The captured frames will be insert into a fixed-size ring buffer, and when the buffer is full the newest frame will replace the oldest frame. You can specify the max buffer length (defualt to 64) using the argument ```max_buffer_len``` upon creation of the ```DXCamera``` instance. 
 ```python
-camera = dxcam.create(max_buffer_len=512)
+camera = dxcampil.create(max_buffer_len=512)
 ```
 ***Note:  Right now to consume frames during capturing there is only `get_latest_frame` available which assume the user to process frames in a LIFO pattern. This is a read-only action and won't pop the processed frame from the buffer. we will make changes to support various of consuming pattern soon.***
 
@@ -127,7 +131,7 @@ However, due to Windows itself is a preemptive OS[^1] and the overhead of Python
 The default behavior of ```.get_latest_frame``` only put newly rendered frame in the buffer, which suits the usage scenario of a object detection/machine learning pipeline. However, when recording a video that is not ideal since we aim to get the frames at a constant framerate: When the ```video_mode=True``` is specified when calling ```.start``` method of a ```DXCamera``` instance, the frame buffer will be feeded at the target fps, using the last frame if there is no new frame available. For example, the following code output a 5-second, 120Hz screen capture:
 ```python
 target_fps = 120
-camera = dxcam.create(output_idx=0, output_color="BGR")
+camera = dxcampil.create(output_idx=0, output_color="BGR")
 camera.start(target_fps=target_fps, video_mode=True)
 writer = cv2.VideoWriter(
     "video.mp4", cv2.VideoWriter_fourcc(*"mp4v"), target_fps, (1920, 1080)
@@ -143,19 +147,19 @@ writer.release()
 ### Safely Releasing of Resource
 Upon calling ```.release``` on a DXCamera instance, it will stop any active capturing, free the buffer and release the duplicator and staging resource. Upon calling ```.stop()```, DXCamera will stop the active capture and free the frame buffer. If you want to manually recreate a ```DXCamera``` instance on the same output with different parameters, you can also manully delete it:
 ```python
-camera1 = dxcam.create(output_idx=0, output_color="BGR")
-camera2 = dxcam.create(output_idx=0)  # Not allowed, camera1 will be returned
+camera1 = dxcampil.create(output_idx=0, output_color="BGR")
+camera2 = dxcampil.create(output_idx=0)  # Not allowed, camera1 will be returned
 camera1 is camera2  # True
 del camera1
 del camera2
-camera2 = dxcam.create(output_idx=0)  # Allowed
+camera2 = dxcampil.create(output_idx=0)  # Allowed
 ```
 
 ## Benchmarks
 ### For Max FPS Capability:
 ```python
 start_time, fps = time.perf_counter(), 0
-cam = dxcam.create()
+cam = dxcampil.create()
 start = time.perf_counter()
 while fps < 1000:
     frame = cam.grab()
@@ -175,7 +179,7 @@ The benchmark is across 5 runs, with a light-moderate usage on my PC (5900X + 30
 
 ### For Targeting FPS:
 ```python
-camera = dxcam.create(output_idx=0)
+camera = dxcampil.create(output_idx=0)
 camera.start(target_fps=60)
 for i in range(1000):
     image = camera.get_latest_frame()

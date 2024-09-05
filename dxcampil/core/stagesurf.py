@@ -1,9 +1,9 @@
 import ctypes
 from dataclasses import dataclass, InitVar
-from dxcam._libs.d3d11 import *
-from dxcam._libs.dxgi import *
-from dxcam.core.device import Device
-from dxcam.core.output import Output
+from dxcampil._libs.d3d11 import *
+from dxcampil._libs.dxgi import *
+from dxcampil.core.device import Device
+from dxcampil.core.output import Output
 
 
 @dataclass
